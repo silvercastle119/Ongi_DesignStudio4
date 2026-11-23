@@ -243,8 +243,9 @@
     const availW = narrow ? innerWidth - 32 : innerWidth - 268 - 36 - 60;
     const availH = narrow ? innerHeight - 32 : innerHeight - 40;
     const s = Math.min(1, availW / 395, availH / 832);
-    phone.style.transform = `scale(${s})`;
-    phone.style.transformOrigin = '0 0';
+    // zoom은 줄어든 크기로 다시 그려서 벡터와 글자가 선명하다 (transform: scale은 저해상도 화면에서 흐려짐)
+    if (CSS.supports('zoom', '1')) { phone.style.zoom = s; phone.style.transform = ''; }
+    else { phone.style.transform = `scale(${s})`; phone.style.transformOrigin = '0 0'; }
     wrap.style.width = `${375 * s}px`;
     wrap.style.height = `${812 * s}px`;
   }

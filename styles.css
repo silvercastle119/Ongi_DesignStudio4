@@ -34,7 +34,7 @@ img { display: block; }
   display: flex; align-items: center; justify-content: center; gap: 36px;
   padding: 20px;
 }
-.phone-wrap { width: 375px; height: 812px; flex: none; transform-origin: center center; }
+.phone-wrap { width: 375px; height: 812px; flex: none; }
 .phone {
   position: relative; width: 375px; height: 812px; overflow: hidden;
   border-radius: 48px;
@@ -196,7 +196,7 @@ img { display: block; }
 
 /* pot + waves */
 .pot { position: absolute; left: 8px; top: 396.4px; width: 360px; height: 180px; z-index: 1; }
-.pot .ring { position: absolute; left: 0; top: 0; width: 360px; height: 180px; transform-origin: 50% 40%; will-change: transform; }
+.pot .ring { position: absolute; left: 0; top: 0; width: 360px; height: 180px; transform-origin: 50% 40%; }
 .pot { cursor: pointer; }
 .pot-mods { position: absolute; left: 0; top: 0; width: 360px; height: 180px; overflow: visible; pointer-events: none; }
 .pot-halo {
@@ -219,7 +219,7 @@ img { display: block; }
 @keyframes plant-grow { 0% { transform: scale(.05); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
 /* character (small, home) */
-.char-wrap { position: absolute; left: 0; top: 0; width: 60px; height: 84px; z-index: 4; transform-origin: 30px 81px; cursor: pointer; will-change: transform; }
+.char-wrap { position: absolute; left: 0; top: 0; width: 60px; height: 84px; z-index: 4; transform-origin: 30px 81px; cursor: pointer; }
 .char { position: absolute; inset: 0; transform-origin: 30px 81px; }
 .c-shadow { position: absolute; left: 9px; top: 77px; width: 42px; height: 8px; }
 .c-feet { position: absolute; left: 0; top: 0; width: 60px; height: 84px; }
