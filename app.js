@@ -453,10 +453,10 @@
     const flt = mk('filter', { id: 'potGlow', x: '-60%', y: '-120%', width: '220%', height: '340%' }, defs);
     mk('feGaussianBlur', { stdDeviation: '5' }, flt);
     const blur = (id, sd) => { const f = mk('filter', { id, x: '-20%', y: '-60%', width: '140%', height: '220%' }, defs); mk('feGaussianBlur', { stdDeviation: sd }, f); };
-    blur('silkBody', '1.4'); blur('bloom', '7'); blur('sheen', '2.2'); blur('contact', '3');
+    blur('silkBody', '0.6'); blur('bloom', '6'); blur('sheen', '0.8'); blur('contact', '7');
     // 레퍼런스처럼: 실리콘 띠가 통통하게 부풀어 오르고, 부푼 실리콘이 속에서 비치듯 빛난다
+    const contactG = mk('g', { filter: 'url(#contact)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 빛 아래에 까는 옅은 그늘 (밝은 화면에서 흰 빛이 보이게)
     const glowG = mk('g', { filter: 'url(#bloom)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 자리 주변으로 번지는 빛
-    const contactG = mk('g', { filter: 'url(#contact)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 바닥에 닿는 부드러운 그늘
     const bodyG = mk('g', { filter: 'url(#silkBody)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 실리콘 몸통
     const hiG = mk('g', { filter: 'url(#sheen)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 진주 같은 윗면 광택
 
@@ -569,7 +569,7 @@
       }
     }
 
-    let lastT = 0; let haloNow = 0;
+    let lastT = 0; let haloNow = 0; const ringH = [0, 0, 0]; // 판 3장이 들린 높이
     function frame(now) {
       requestAnimationFrame(frame);
       if (current !== 'home') { lastT = 0; return; }
@@ -585,42 +585,70 @@
       }
       plantInner.classList.toggle('thirsty', !!ex && ex.kind === 'state' && ex.pattern === 1);
       let total = 0;
-      mods.forEach((m) => {
-        const tgt = p ? heightFor(m, p, t) : 0;
-        m.h += (tgt - m.h) * Math.min(1, dt * 10);
-        total += m.h;
-      });
-      bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
-      // 실리콘이 통통하게 부푼 모양: 띠를 따라 둥근 끝의 굵은 붓터치를 촘촘히 겹쳐 매끈한 튜브처럼 그림
+      // 판(띠) 3장은 납작한 한 덩어리로, 위로 들렸다 제자리로 돌아오기만 한다
+      const lightOnly = p === 3 || p === 5; // 03, 05는 판은 살짝 떨리고 빛이 파동을 표현
+      mods.forEach((m) => { const tgt = lightOnly ? heightFor(m, p, t) : 0; m.h += (tgt - m.h) * Math.min(1, dt * 10); });
+      for (let r = 0; r < 3; r++) {
+        let tgt = 0;
+        if (p === 1) tgt = 1.8 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 2.6 + r * 1.2));
+        else if (p === 2 || p === 4) tgt = heightFor({ r, a: 0 }, p, t) * 0.9;
+        else if (lightOnly) tgt = Math.max(0, 0.7 + 0.6 * Math.sin(2 * Math.PI * t * 1.3 + r * 2.1) + 0.35 * Math.sin(t * 19 + r * 5));
+        ringH[r] += (tgt - ringH[r]) * Math.min(1, dt * 10);
+        total += ringH[r];
+      }
+      if (lightOnly) bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
+
       const top = (r) => RINGS[r].top.map((v) => v * th.dim);
-      const seg = (a, b, w, color, op, dy = 0) => `<path d="M${f1(a[0])} ${f1(a[1] + dy)}L${f1(b[0])} ${f1(b[1] + dy)}" stroke="${color}" stroke-width="${w.toFixed(1)}" stroke-opacity="${op.toFixed(2)}"/>`;
-      const half = (r, front) => {
-        const B = bands[r]; const j0 = front ? 0 : HALF; const j1 = front ? HALF : SAMPLES;
-        const base = top(r);
-        for (let j = j0; j < j1; j++) {
-          const q0 = B[j]; const q1 = B[j + 1];
-          const h = (q0.h + q1.h) / 2; if (h < 0.06) continue;
-          const k = Math.min(1, h / 3.2); const glow = th.light * k;
-          const bw = Math.hypot(q0.po[0] - q0.pi[0], q0.po[1] - q0.pi[1]); // 띠의 화면상 폭
-          const w = bw * (0.15 + 0.8 * Math.min(1, h / 5)); // 부풀수록 띠 폭만큼 통통해짐
-          const a = [q0.pc[0], q0.pc[1] - q0.h]; const b = [q1.pc[0], q1.pc[1] - q1.h];
-          const fade = Math.min(1, h / 1.6);
-          contact += seg(q0.pc, q1.pc, w * 0.9, '#3C4A34', 0.32 * k, 2.2);
-          bloom += seg(a, b, w * 1.35, rgb(lc), Math.min(1, 1.05 * glow));
-          body += seg(a, b, w, rgb(mix(base, lc, 0.8 * glow)), 1);
-          hi += seg(a, b, w * 0.32, '#FFFFFF', (0.25 + 0.45 * k) * fade, -w * 0.2);
-        }
-      };
-      let body = ''; let hi = ''; let bloom = ''; let contact = '';
-      [[2, false], [1, false], [0, false], [0, true], [1, true], [2, true]].forEach(([r, f]) => half(r, f)); // 뒤쪽부터 앞쪽 순서
-      bodyG.innerHTML = body; hiG.innerHTML = hi; glowG.innerHTML = bloom; contactG.innerHTML = contact;
-      haloNow += (Math.min(1, total / (mods.length * 1.6)) - haloNow) * Math.min(1, dt * 2.5); // 부푼 만큼 화분 위로 번지는 빛
+      const P = (q) => `${f1(q[0])} ${f1(q[1])}`;
+      const lift = (q, H) => [q[0], q[1] - H];
+      const halfPts = (r, key, front) => { const B = bands[r]; const o = []; for (let j = front ? 0 : HALF; j <= (front ? HALF : SAMPLES); j++) o.push(B[j][key]); return o; };
+      const ringPath = (r, H) => `M${bands[r].map((q) => P(lift(q.po, H))).join(' L')}Z M${bands[r].map((q) => P(lift(q.pi, H))).join(' L')}Z`;
+      const wallPath = (r, key, front, H) => { const b = halfPts(r, key, front); return `M${b.map(P).join(' L')} L${b.slice().reverse().map((q) => P(lift(q, H))).join(' L')}Z`; };
+      const haze = themeNow() !== 'night'; // 밝은 화면에서는 빛 주변에 옅은 그늘을 깔아 흰 빛도 뿌옇게 보이게
+      let shadowH = ''; let bloomH = ''; let bodyH = ''; let hiH = '';
+
+      // 들린 판: 낮은 판부터 그려야 높이 들린 판이 위에 겹친다
+      [0, 1, 2].sort((a, b) => ringH[a] - ringH[b]).forEach((r) => {
+        const H = ringH[r] * 1.3; if (H < 0.08) return;
+        const k = Math.min(1, H / 6); const glow = th.light * k * (lightOnly ? 0.35 : 1);
+        const base = top(r); const side = rgb(mix(base.map((v) => v * 0.88), lc, 0.8 * glow));
+        // 판 아래 틈에서 새어 나오는 빛 (보이는 쪽 경계: 앞쪽은 바깥 경계, 뒤쪽은 안쪽 경계)
+        const leak = `M${halfPts(r, 'po', true).map(P).join(' L')} M${halfPts(r, 'pi', false).map(P).join(' L')}`;
+        if (haze) shadowH += `<path d="${leak}" stroke="#4A5A44" stroke-opacity="${(0.12 * glow).toFixed(2)}" stroke-width="${(12 + H * 1.5).toFixed(1)}"/>`;
+        bloomH += `<path d="${leak}" stroke="${rgb(lc)}" stroke-opacity="${Math.min(1, 1.2 * glow).toFixed(2)}" stroke-width="${(6 + H * 1.2).toFixed(1)}"/>`;
+        bodyH += `<path d="${wallPath(r, 'po', true, H)}" fill="${side}"/><path d="${wallPath(r, 'pi', false, H)}" fill="${side}"/>`;
+        bodyH += `<path d="${ringPath(r, H)}" fill="${rgb(base)}" fill-rule="evenodd"/>`;
+        hiH += `<path d="${ringPath(r, H)}" fill="none" stroke="#FFFFFF" stroke-opacity="${(0.2 + 0.3 * k).toFixed(2)}" stroke-width="0.9"/>`;
+      });
+
+      // 03, 05: 판 위로 빛이 번지거나(여러 군데) 한 바퀴 흐른다
+      if (lightOnly) {
+        const spots = new Map();
+        bands.forEach((B, r) => {
+          for (let j = 0; j < SAMPLES; j += 2) {
+            const q0 = B[j]; const q1 = B[j + 2];
+            const v = (q0.h + q1.h) / 2; if (v < 0.15) continue;
+            const o = Math.round(Math.min(1, v / 4) * 10) / 10; if (!o) continue;
+            const bw = Math.round(Math.hypot(q0.po[0] - q0.pi[0], q0.po[1] - q0.pi[1]) * 1.25 / 2) * 2;
+            const key = `${o}|${bw}`;
+            spots.set(key, (spots.get(key) || '') + `M${P(lift(q0.pc, ringH[r] * 1.3))}L${P(lift(q1.pc, ringH[r] * 1.3))}`);
+          }
+        });
+        spots.forEach((d, key) => {
+          const [o, w] = key.split('|').map(Number);
+          if (haze) shadowH += `<path d="${d}" stroke="#4A5A44" stroke-opacity="${(0.14 * o * th.light).toFixed(2)}" stroke-width="${w * 1.6}"/>`;
+          bloomH += `<path d="${d}" stroke="${rgb(lc)}" stroke-opacity="${Math.min(1, o * th.light * 1.15).toFixed(2)}" stroke-width="${w}"/>`;
+          total += o * 6;
+        });
+      }
+      contactG.innerHTML = shadowH; glowG.innerHTML = bloomH; bodyG.innerHTML = bodyH; hiG.innerHTML = hiH;
+      haloNow += (Math.min(1, total / 14) - haloNow) * Math.min(1, dt * 2.5); // 파동이 있을 때만 화분 위로 번지는 빛
       halo.style.opacity = (haloNow * th.light * th.spread * 0.6).toFixed(3); // 부푼 자리가 묻히지 않게 넓은 빛은 약하게
     }
     requestAnimationFrame(frame);
 
     // 캐릭터가 서 있는 자리의 실리콘 높이 (바깥 띠)
-    function liftAt(theta) { return hAt(2, theta); }
+    function liftAt() { return ringH[2] * 1.3; } // 캐릭터가 서 있는 바깥 판이 들린 높이
 
     return { level, expr, describe, event, force, liftAt, get forced() { return forcedPattern; }, needsNow };
   })();
