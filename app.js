@@ -453,12 +453,12 @@
     const flt = mk('filter', { id: 'potGlow', x: '-60%', y: '-120%', width: '220%', height: '340%' }, defs);
     mk('feGaussianBlur', { stdDeviation: '5' }, flt);
     const blur = (id, sd) => { const f = mk('filter', { id, x: '-20%', y: '-60%', width: '140%', height: '220%' }, defs); mk('feGaussianBlur', { stdDeviation: sd }, f); };
-    blur('silkBody', '0.8'); blur('bloom', '6'); blur('sheen', '1.6'); blur('contact', '2.2');
+    blur('silkBody', '1.4'); blur('bloom', '7'); blur('sheen', '2.2'); blur('contact', '3');
     // 레퍼런스처럼: 실리콘 띠가 통통하게 부풀어 오르고, 부푼 실리콘이 속에서 비치듯 빛난다
-    const glowG = mk('g', { filter: 'url(#bloom)' }, svg); // 부푼 자리 주변으로 번지는 빛
-    const contactG = mk('g', { filter: 'url(#contact)' }, svg); // 바닥에 닿는 부드러운 그늘
-    const bodyG = mk('g', { filter: 'url(#silkBody)' }, svg); // 부푼 실리콘 몸통
-    const hiG = mk('g', { filter: 'url(#sheen)' }, svg); // 진주 같은 윗면 광택
+    const glowG = mk('g', { filter: 'url(#bloom)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 자리 주변으로 번지는 빛
+    const contactG = mk('g', { filter: 'url(#contact)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 바닥에 닿는 부드러운 그늘
+    const bodyG = mk('g', { filter: 'url(#silkBody)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 실리콘 몸통
+    const hiG = mk('g', { filter: 'url(#sheen)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 진주 같은 윗면 광택
 
     // 밀어 올리는 지점들 – 움직임 5가지는 이 지점들의 높이로 계산한다
     const mods = [];
@@ -591,44 +591,28 @@
         total += m.h;
       });
       bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
-      // 실리콘이 볼록하게 부푼 모양: 능선(가운데)이 솟고 양쪽 경계는 제자리에 붙어 있음
+      // 실리콘이 통통하게 부푼 모양: 띠를 따라 둥근 끝의 굵은 붓터치를 촘촘히 겹쳐 매끈한 튜브처럼 그림
       const top = (r) => RINGS[r].top.map((v) => v * th.dim);
-      const pts = (arr) => arr.map(([x, y]) => `${f1(x)} ${f1(y)}`).join(' L');
-      const drawRun = (run, r, front) => {
-        let mh = 0; run.forEach((q) => { mh = Math.max(mh, q.h); });
-        const k = Math.min(1, mh / 3.2);
-        const up = (p, h) => [p[0], p[1] - h];
-        const nearB = run.map((q) => (front ? q.po : q.pi)); // 화면에서 아래쪽 경계 (보는 쪽)
-        const farB = run.map((q) => (front ? q.pi : q.po));
-        const nearU = run.map((q, i) => up(nearB[i], q.h * 0.85));
-        const farU = run.map((q, i) => up(farB[i], q.h * 0.85));
-        const ridge = run.map((q) => up(q.pc, q.h * 1.15)); // 도넛 단면처럼 가운데가 가장 높음
-        const base = top(r);
-        const glow = th.light * k;
-        // 바닥 그늘 → 빛 번짐 → 몸통(위로 갈수록 밝고, 속에서 빛이 비침) → 광택
-        contact += `<path d="M${pts(nearB.map((p) => [p[0], p[1] + 1.5]))}" stroke="#3C4A34" stroke-opacity="${(0.4 * k).toFixed(2)}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
-        bloom += `<path d="M${pts(farU)} L${pts(nearB.slice().reverse())}Z" fill="${rgb(lc)}" fill-opacity="${Math.min(1, 1.1 * glow).toFixed(2)}"/>`;
-        // 먼 쪽 경사면 (윗면, 밝은 실리콘) + 가까운 쪽 경사면과 옆면 (속에서 빛이 비쳐 더 따뜻함)
-        body += `<path d="M${pts(farU)} L${pts(ridge.slice().reverse())}Z" fill="${rgb(mix(base.map((v) => Math.min(255, v * 1.02)), lc, 0.6 * glow))}"/>`;
-        body += `<path d="M${pts(ridge)} L${pts(nearU.slice().reverse())}Z" fill="${rgb(mix(base, lc, 0.85 * glow))}"/>`;
-        body += `<path d="M${pts(nearU)} L${pts(nearB.slice().reverse())}Z" fill="${rgb(mix(base.map((v) => v * 0.95), lc, 0.95 * glow))}"/>`;
-        hi += `<path d="M${pts(ridge)}" stroke="#FFFFFF" stroke-opacity="${(0.25 + 0.5 * k).toFixed(2)}" stroke-width="${(1.4 + mh * 0.3).toFixed(1)}" stroke-linecap="round" fill="none"/>`;
-      };
-      // 부푼 구간을 짧게 나눠 그려서, 많이 솟은 곳일수록 더 밝게 빛나게 한다
-      const drawRuns = (run, r, front) => { for (let i = 0; i < run.length - 1; i += 4) drawRun(run.slice(i, i + 5), r, front); };
+      const seg = (a, b, w, color, op, dy = 0) => `<path d="M${f1(a[0])} ${f1(a[1] + dy)}L${f1(b[0])} ${f1(b[1] + dy)}" stroke="${color}" stroke-width="${w.toFixed(1)}" stroke-opacity="${op.toFixed(2)}"/>`;
       const half = (r, front) => {
         const B = bands[r]; const j0 = front ? 0 : HALF; const j1 = front ? HALF : SAMPLES;
-        let run = [];
-        for (let j = j0; j <= j1; j++) {
-          const q = B[j];
-          if (q.h > 0.08) { if (!run.length && j > j0) run.push(B[j - 1]); run.push(q); }
-          else if (run.length) { run.push(q); drawRuns(run, r, front); run = []; }
+        const base = top(r);
+        for (let j = j0; j < j1; j++) {
+          const q0 = B[j]; const q1 = B[j + 1];
+          const h = (q0.h + q1.h) / 2; if (h < 0.06) continue;
+          const k = Math.min(1, h / 3.2); const glow = th.light * k;
+          const bw = Math.hypot(q0.po[0] - q0.pi[0], q0.po[1] - q0.pi[1]); // 띠의 화면상 폭
+          const w = bw * (0.15 + 0.8 * Math.min(1, h / 5)); // 부풀수록 띠 폭만큼 통통해짐
+          const a = [q0.pc[0], q0.pc[1] - q0.h]; const b = [q1.pc[0], q1.pc[1] - q1.h];
+          const fade = Math.min(1, h / 1.6);
+          contact += seg(q0.pc, q1.pc, w * 0.9, '#3C4A34', 0.32 * k, 2.2);
+          bloom += seg(a, b, w * 1.35, rgb(lc), Math.min(1, 1.05 * glow));
+          body += seg(a, b, w, rgb(mix(base, lc, 0.8 * glow)), 1);
+          hi += seg(a, b, w * 0.32, '#FFFFFF', (0.25 + 0.45 * k) * fade, -w * 0.2);
         }
-        if (run.length > 1) drawRuns(run, r, front);
       };
-      // 뒤쪽 반원은 바깥 띠부터, 앞쪽 반원은 안쪽 띠부터 그려야 겹침이 자연스럽다
       let body = ''; let hi = ''; let bloom = ''; let contact = '';
-      [[2, false], [1, false], [0, false], [0, true], [1, true], [2, true]].forEach(([r, f]) => half(r, f));
+      [[2, false], [1, false], [0, false], [0, true], [1, true], [2, true]].forEach(([r, f]) => half(r, f)); // 뒤쪽부터 앞쪽 순서
       bodyG.innerHTML = body; hiG.innerHTML = hi; glowG.innerHTML = bloom; contactG.innerHTML = contact;
       haloNow += (Math.min(1, total / (mods.length * 1.6)) - haloNow) * Math.min(1, dt * 2.5); // 부푼 만큼 화분 위로 번지는 빛
       halo.style.opacity = (haloNow * th.light * th.spread * 0.6).toFixed(3); // 부푼 자리가 묻히지 않게 넓은 빛은 약하게
