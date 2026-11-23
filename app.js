@@ -1467,6 +1467,17 @@
     }
   });
 
+  /* ---------------- 서비스 소개: 캐릭터 5종 ---------------- */
+  (() => {
+    const ic = $('#introChars');
+    if (ic) {
+      ic.innerHTML = CHAR_ORDER.map((k) => `<figure class="ic-card" style="--c:${CHAR_COLOR[k]}">
+        <div class="ic-art"><div class="ic-inner">${charHTML(k, 'happy')}</div></div>
+        <figcaption><b>${CHARS[k].name}</b><span class="ic-mood"><i></i>${MOODS[k].label}의 날이 많을 때</span></figcaption></figure>`).join('');
+    }
+    const hc = $('#heroChar'); if (hc) hc.innerHTML = charHTML('calm', 'happy');
+  })();
+
   /* ---------------- 시작 ---------------- */
   // 자동 모드 버튼 추가
   applyTheme();

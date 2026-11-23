@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ONGI 프로토타입</title>
+<title>ONGI, 화분과 함께 자라는 마음 돌봄</title>
 <meta name="description" content="AI 화분과 연동되는 식물 돌봄 앱 ONGI의 인터랙티브 프로토타입">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
@@ -12,6 +12,109 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<header class="site-nav">
+  <a class="nav-logo" href="#top" aria-label="ONGI"><img src="assets/logo-header.svg" alt="ONGI" onerror="this.src='assets/logo.svg'"></a>
+  <nav><a href="#flow">서비스 소개</a><a href="#demo" class="nav-cta">체험하기</a></nav>
+</header>
+
+<main class="intro" id="top">
+  <!-- 첫 화면 -->
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">AI 화분과 함께 자라는 마음 돌봄 앱</p>
+      <h1>화분을 돌보다 보면,<br>어느새 나를 돌보게 돼요</h1>
+      <p class="lead">ONGI 화분은 윗면의 파동과 빛으로 말을 겁니다. 화분의 요청에 답하고 하루의 마음을 기록하면, 화분은 점점 나를 이해하고 나를 닮은 식물이 정원에 찾아옵니다.</p>
+      <div class="hero-actions"><a class="btn-cta" href="#demo">프로토타입 체험하기</a><a class="btn-ghost" href="#flow">어떻게 작동하나요?</a></div>
+    </div>
+    <div class="intro-art" aria-hidden="true">
+      <div class="ha-glow"></div>
+      <div class="ha-scene">
+        <img class="ha-pot" src="assets/pot-1.svg" alt=""><img class="ha-pot" src="assets/pot-3.svg" alt=""><img class="ha-pot" src="assets/pot-5.svg" alt=""><img class="ha-pot" src="assets/pot-7.svg" alt=""><img class="ha-pot" src="assets/pot-hole.svg" alt="">
+        <div class="ha-plant"><img class="plant-stem" src="assets/plant-stem.svg" alt=""><img class="plant-leaves" src="assets/plant-leaves.svg" alt=""></div>
+        <div class="ha-char" id="heroChar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1. 돌봄이 성장이 되는 흐름 -->
+  <section class="block" id="flow">
+    <p class="kicker">01  Pot → App → Character</p>
+    <h2>돌봄이 성장이 되는 흐름</h2>
+    <p class="block-lead">화분이 필요로 하는 돌봄을 앱이 알려주고, 실제 화분을 돌보면 그 행동이 앱 속 보상으로 돌아옵니다. 그 보상으로 나를 닮은 식물이 자랍니다.</p>
+    <ol class="steps">
+      <li><span class="step-n">1</span><b>요청</b><p>화분이 물, 햇빛, 온습도, 영양, 환기 중 필요한 것을 파동으로 알리고, 같은 내용이 홈의 '오늘의 퀘스트'로 떠요.</p></li>
+      <li><span class="step-n">2</span><b>돌봄</b><p>사용자가 실제 화분에 물을 주면, 화분이 이를 감지해 퀘스트가 완료돼요.</p></li>
+      <li><span class="step-n">3</span><b>보상</b><p>"물방울을 받았어요" 처럼 돌봄에 맞는 아이템이 앱에 도착해요.</p></li>
+      <li><span class="step-n">4</span><b>성장</b><p>받은 아이템을 나를 닮은 식물에게 주면 경험치가 쌓여 씨앗에서 새싹, 어린 잎, 꽃봉오리로 자라요.</p></li>
+    </ol>
+    <div class="rewards">
+      <div class="reward"><img src="assets/item-drop-24.svg" alt=""><span><b>물 주기</b>물방울</span></div>
+      <div class="reward"><img src="assets/item-sun-24.svg" alt=""><span><b>햇빛 쬐어주기</b>햇빛</span></div>
+      <div class="reward"><img src="assets/item-heart-24.svg" alt=""><span><b>온습도, 영양, 환기</b>마음</span></div>
+    </div>
+    <p class="point">실제 화분을 돌본 만큼 앱 속 나의 식물도 자랍니다. 화분을 돌보는 일이 곧 나를 돌보는 일로 이어져요.</p>
+  </section>
+
+  <!-- 2. 마음이 캐릭터가 되기까지 -->
+  <section class="block" id="mind">
+    <p class="kicker">02  Emotion Data → Character</p>
+    <h2>하루의 마음이 나를 닮은 식물이 되기까지</h2>
+    <p class="block-lead">매일 하나의 질문에 답하며 그날의 마음을 고릅니다. 고른 마음은 달력에 차곡차곡 쌓이고, 충분히 쌓이면 그 마음을 닮은 식물이 찾아와요.</p>
+    <div class="mind-flow">
+      <div><b>기록</b><p>하루 한 번 질문에 답하고, 오늘의 마음을 다섯 가지 중 하나로 골라요.</p></div>
+      <div><b>축적</b><p>고른 마음은 달력에 하루하루 표정으로 쌓여요.</p></div>
+      <div><b>등장</b><p>그동안 고른 마음의 경향에 따라 다섯 식물 중 하나가 찾아와요.</p></div>
+    </div>
+    <div class="chars" id="introChars"></div>
+    <p class="note">마음의 비율은 성격을 단정하는 정답이 아니라 경향일 뿐이에요. 그래서 앱은 확률을 보여주지 않고, 찾아온 식물을 "당신의 하루를 닮은 식물"로만 소개해요.</p>
+  </section>
+
+  <!-- 3. 파동면 -->
+  <section class="block" id="ripple">
+    <p class="kicker">03  Ripple Identity</p>
+    <h2>파동면, 화분의 언어를 앱으로</h2>
+    <p class="block-lead">홈의 정원은 실제 화분의 윗면을 그대로 옮겨온 공간이에요. 화분이 파동으로 신호를 보내면, 앱의 파동면도 같은 움직임과 같은 빛으로 반응합니다.</p>
+    <div class="ripple-grid">
+      <div class="ripple-list">
+        <div class="rp"><span>01</span><b>잔잔한 낮은 물결</b><em>판이 낮게 들썩임</em></div>
+        <div class="rp"><span>02</span><b>중심에서 바깥으로 퍼지는 물결</b><em>중앙 판부터 차례로 들림</em></div>
+        <div class="rp"><span>03</span><b>불규칙한 다중 움직임</b><em>여러 곳에서 빛이 번짐</em></div>
+        <div class="rp"><span>04</span><b>안쪽에서 바깥쪽으로 천천히 확장</b><em>판이 순서대로 들림</em></div>
+        <div class="rp"><span>05</span><b>회전하는 물결</b><em>빛이 한 바퀴 흐름</em></div>
+      </div>
+      <div class="ripple-side">
+        <div class="lights">
+          <div class="light"><i style="--lc:#ffffff"></i><b>Level 1</b><span>백색광</span></div>
+          <div class="light"><i style="--lc:#fff1d0"></i><b>Level 2</b><span>은은한 노란빛</span></div>
+          <div class="light"><i style="--lc:#ffc442"></i><b>Level 3</b><span>따뜻한 노란빛</span></div>
+        </div>
+        <div class="react">
+          <p class="react-title">파동은 캐릭터에게도 닿아요</p>
+          <p>같은 잔잔한 물결이어도 의미에 따라 반응이 달라져요. 목마름을 알리는 물결이면 제자리에서 통통 튀며 목마른 표정을 짓고, 고마움을 전하는 물결이면 웃으며 사뿐사뿐 뛰어다녀요.</p>
+        </div>
+      </div>
+    </div>
+    <p class="point">화분 앞에 있지 않아도, 앱의 파동면만 보면 지금 화분이 무엇을 말하는지 읽을 수 있어요.</p>
+  </section>
+
+  <!-- 4. 관계의 변화 -->
+  <section class="block" id="level">
+    <p class="kicker">04  Relationship</p>
+    <h2>화분이 나를 이해해 가는 3단계</h2>
+    <div class="levels">
+      <div class="lv"><span>Level 1</span><b>식물의 상태</b><p>처음에는 화분이 목마름, 햇빛 부족처럼 자신의 상태를 알려요.</p></div>
+      <div class="lv"><span>Level 2</span><b>감정</b><p>나를 닮은 식물이 찾아오면, 화분이 감사와 애정 같은 감정을 표현해요.</p></div>
+      <div class="lv"><span>Level 3</span><b>사용자에게 건네는 마음</b><p>그 식물이 자라면, 화분이 오늘의 나를 존중하고 진정시키고 응원해요.</p></div>
+    </div>
+  </section>
+</main>
+
+<section class="demo" id="demo">
+  <div class="demo-head">
+    <p class="kicker">Prototype</p>
+    <h2>직접 체험해 보세요</h2>
+    <p class="block-lead">왼쪽 휴대폰 화면은 실제 앱처럼 눌러 보고, 오른쪽 컨트롤로 실제 화분에서 들어오는 신호를 흉내 낼 수 있어요.</p>
+  </div>
 <div class="stage">
   <div class="phone-wrap" id="phoneWrap">
     <div class="phone" id="phone">
@@ -383,6 +486,9 @@
     <p class="dev-state" id="devState"></p>
   </aside>
 </div>
+</section>
+<footer class="site-foot">ONGI, AI 화분과 함께 자라는 마음 돌봄 앱 프로토타입</footer>
+
 <script src="pot-geo.js"></script>
 <script src="app.js"></script>
 </body>
