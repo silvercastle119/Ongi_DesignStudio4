@@ -433,11 +433,12 @@
     // Figma 화분 윗면 링(단 1·3·5·7)의 실제 윤곽 – pot-geo.js
     const G = window.POT_GEO;
     const C = ['pot-1', 'pot-3', 'pot-5', 'pot-7'].map((k) => G[k]);
-    // r: 0 = 1번 링(중앙) · 1 = 2번 링(중간) · 2 = 3번 링(바깥)
+    // 실리콘이 덮인 3개의 띠. r: 0 = 1번 띠(중앙), 1 = 2번 띠(중간), 2 = 3번 띠(바깥)
+    // n은 실리콘 아래에서 밀어 올리는 지점 수 (화면에는 조각으로 보이지 않음)
     const RINGS = [
-      { o: C[2], i: C[3], n: 9, top: [220, 226, 215] },
-      { o: C[1], i: C[2], n: 12, top: [230, 234, 225] },
-      { o: C[0], i: C[1], n: 16, top: [239, 242, 235] },
+      { o: C[2], i: C[3], n: 18, top: [220, 226, 215] },
+      { o: C[1], i: C[2], n: 24, top: [230, 234, 225] },
+      { o: C[0], i: C[1], n: 32, top: [239, 242, 235] },
     ];
     const TAU = Math.PI * 2;
     const pt = (c, a) => {
@@ -446,35 +447,50 @@
       return [c.cx + rr * Math.cos(a), c.cy + rr * Math.sin(a)];
     };
     const mk = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v)); parent.appendChild(n); return n; };
-    const fmtPts = (arr, dy = 0) => arr.map(([x, y]) => `${x.toFixed(1)},${(y - dy).toFixed(1)}`).join(' ');
+    const f1 = (v) => v.toFixed(1);
 
     const defs = mk('defs', {}, svg);
     const flt = mk('filter', { id: 'potGlow', x: '-60%', y: '-120%', width: '220%', height: '340%' }, defs);
-    mk('feGaussianBlur', { stdDeviation: '4.5' }, flt);
+    mk('feGaussianBlur', { stdDeviation: '5' }, flt);
+    const silk = mk('filter', { id: 'potSilk', x: '-10%', y: '-30%', width: '120%', height: '160%' }, defs);
+    mk('feGaussianBlur', { stdDeviation: '0.45' }, silk);
     const glowG = mk('g', { filter: 'url(#potGlow)' }, svg);
-    const modG = mk('g', {}, svg);
+    const silkG = mk('g', { filter: 'url(#potSilk)' }, svg);
 
+    // 밀어 올리는 지점들 – 움직임 5가지는 이 지점들의 높이로 계산한다
     const mods = [];
-    RINGS.forEach((R, r) => {
-      const off = 0.1 + r * 0.21;
-      for (let k = 0; k < R.n; k++) {
-        const a0 = off + (2 * Math.PI * k) / R.n; const a1 = off + (2 * Math.PI * (k + 1)) / R.n; const g = 0.014;
-        const outer = []; const inner = [];
-        for (let i = 0; i <= 8; i++) { const a = a0 + g + ((a1 - a0 - 2 * g) * i) / 8; outer.push(pt(R.o, a)); inner.push(pt(R.i, a)); }
-        const am = (a0 + a1) / 2;
-        mods.push({ r, a: am, a0, a1, outer, inner, my: (pt(R.o, am)[1] + pt(R.i, am)[1]) / 2, h: 0, start: -99, dur: 1, amp: 0, next: 0 });
+    RINGS.forEach((R, r) => { for (let k = 0; k < R.n; k++) mods.push({ r, a: (TAU * k) / R.n + r * 0.13, h: 0, start: -99, dur: 1, amp: 0, next: 0 }); });
+    const ringMods = [0, 1, 2].map((r) => mods.filter((m) => m.r === r));
+    // 지점들의 높이를 부드럽게 이어 실리콘 표면 높이로 만든다
+    function hAt(r, a) {
+      const ms = ringMods[r]; const n = ms.length; const sp = TAU / n; const sig = 0.55 * sp;
+      const base = Math.round((a - ms[0].a) / sp); let sum = 0;
+      for (let q = -3; q <= 3; q++) {
+        const m = ms[(((base + q) % n) + n) % n];
+        const d = Math.atan2(Math.sin(a - m.a), Math.cos(a - m.a));
+        sum += m.h * Math.exp(-0.5 * (d / sig) ** 2);
       }
+      return sum * 0.725;
+    }
+
+    // 띠마다 안쪽 경계, 바깥 경계, 가운데(솟아오르는 능선)를 촘촘히 잡아 둔다
+    const SAMPLES = 144; const HALF = SAMPLES / 2;
+    const bands = RINGS.map((R) => {
+      const out = [];
+      for (let j = 0; j <= SAMPLES; j++) {
+        const a = (TAU * j) / SAMPLES; const pi = pt(R.i, a); const po = pt(R.o, a);
+        out.push({ a, pi, po, pc: [(pi[0] + po[0]) / 2, (pi[1] + po[1]) / 2], h: 0 });
+      }
+      return out;
     });
-    mods.sort((p, q) => p.my - q.my); // 뒤에서 앞으로 그리기
-    mods.forEach((m) => {
-      m.base = fmtPts([...m.outer, ...m.inner.slice().reverse()]);
-      m.outerRev = m.outer.slice().reverse(); m.innerRev = m.inner.slice().reverse();
-      m.glow = mk('polygon', { points: m.base, opacity: 0 }, glowG);
-      m.g = mk('g', { style: 'display:none' }, modG);
-      m.slot = mk('polygon', { points: m.base }, m.g);
-      m.sideI = mk('polygon', {}, m.g);
-      m.sideO = mk('polygon', {}, m.g);
-      m.top = mk('polygon', { points: m.base, stroke: '#BCC5B5', 'stroke-width': '0.7', 'stroke-linejoin': 'round' }, m.g);
+    // 빛: 실리콘이 부푼 자리 아래에서 은은하게 번짐 (작은 조각마다 세기 조절)
+    const CH = 6; const glows = [];
+    bands.forEach((B, r) => {
+      for (let j0 = 0; j0 < SAMPLES; j0 += CH) {
+        const seg = B.slice(j0, j0 + CH + 1);
+        const d = `M${seg.map((q) => `${f1(q.po[0])} ${f1(q.po[1])}`).join(' L')} L${seg.slice().reverse().map((q) => `${f1(q.pi[0])} ${f1(q.pi[1])}`).join(' L')}Z`;
+        glows.push({ el: mk('path', { d, opacity: 0 }, glowG), r, j0 });
+      }
     });
 
     /* --- 표현 상태 --- */
@@ -538,7 +554,7 @@
         case 3: { // 서로 다른 타이밍으로 불규칙하게
           if (t > m.start + m.dur) {
             if (t < m.next) return 0;
-            m.start = t; m.dur = 0.8 + Math.random() * 0.9; m.amp = 4 + Math.random() * 4.5; m.next = t + m.dur + 0.5 + Math.random() * 3.2;
+            m.start = t; m.dur = 0.9 + Math.random() * 0.8; m.amp = 5.5 + Math.random() * 5; m.next = t + m.dur + 3.5 + Math.random() * 7; // 실리콘 여기저기가 띄엄띄엄 솟음
           }
           return m.amp * Math.sin((Math.PI * (t - m.start)) / m.dur);
         }
@@ -564,7 +580,7 @@
       if (current !== 'home') { lastT = 0; return; }
       const t = now / 1000; const dt = Math.min(0.05, lastT ? t - lastT : 0.016); lastT = t;
       const ex = expr(); const p = ex ? ex.pattern : 0;
-      if (p === 3 && lastP !== 3) mods.forEach((m) => { m.start = -99; m.next = t + Math.random() * 2.2; });
+      if (p === 3 && lastP !== 3) mods.forEach((m) => { m.start = -99; m.next = t + Math.random() * 6; });
       lastP = p;
       const L = ex ? meaningLevel(ex) : level();
       const lc = LIGHT[L]; const th = THEMES[themeNow()];
@@ -574,42 +590,52 @@
       }
       plantInner.classList.toggle('thirsty', !!ex && ex.kind === 'state' && ex.pattern === 1);
       let total = 0;
-      const topDim = (c) => c.map((v) => v * th.dim);
       mods.forEach((m) => {
         const tgt = p ? heightFor(m, p, t) : 0;
         m.h += (tgt - m.h) * Math.min(1, dt * 10);
         total += m.h;
-        const k = Math.min(1, m.h / 5);
-        m.glow.setAttribute('opacity', (th.light * k).toFixed(3));
-        const vis = m.h > 0.12;
-        if (m.vis !== vis) { m.g.style.display = vis ? '' : 'none'; m.vis = vis; }
-        if (!vis) return;
-        const h = m.h;
-        m.top.setAttribute('transform', `translate(0 ${(-h).toFixed(2)})`);
-        m.sideO.setAttribute('points', `${fmtPts(m.outer)} ${fmtPts(m.outerRev, h)}`);
-        m.sideI.setAttribute('points', `${fmtPts(m.inner)} ${fmtPts(m.innerRev, h)}`);
-        const top = topDim(RINGS[m.r].top);
-        const side = mix(top.map((v) => v * 0.8), lc, th.light * 0.85 * k);
-        m.top.setAttribute('fill', rgb(mix(top, lc, th.light * 0.18 * k)));
-        m.sideO.setAttribute('fill', rgb(side)); m.sideI.setAttribute('fill', rgb(side));
-        if (th.light > 0) { m.slot.setAttribute('fill', rgb(lc)); m.slot.setAttribute('opacity', (k * th.light).toFixed(2)); }
-        else { m.slot.setAttribute('fill', '#7d8775'); m.slot.setAttribute('opacity', (0.4 * k).toFixed(2)); }
       });
+      bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
+      glows.forEach((g) => {
+        const B = bands[g.r]; let sh = 0;
+        for (let j = g.j0; j <= g.j0 + CH; j++) sh += B[j].h;
+        g.el.setAttribute('opacity', (th.light * Math.min(1, sh / (CH + 1) / 4.5)).toFixed(3));
+      });
+      // 실리콘이 볼록하게 부푼 모양: 능선(가운데)이 솟고 양쪽 경계는 제자리에 붙어 있음
+      const top = (r) => RINGS[r].top.map((v) => v * th.dim);
+      const pts = (arr) => arr.map(([x, y]) => `${f1(x)} ${f1(y)}`).join(' L');
+      const drawRun = (run, r, front) => {
+        const ridge = run.map((q) => [q.pc[0], q.pc[1] - q.h]);
+        let mh = 0; run.forEach((q) => { mh = Math.max(mh, q.h); });
+        const k = Math.min(1, mh / 5);
+        const inner = `M${pts(ridge)} L${pts(run.slice().reverse().map((q) => q.pi))}Z`;
+        const outer = `M${pts(ridge)} L${pts(run.slice().reverse().map((q) => q.po))}Z`;
+        const farFill = rgb(mix(top(r).map((v) => Math.min(255, v * 1.03)), lc, th.light * 0.25 * k));
+        const nearFill = rgb(mix(top(r).map((v) => v * 0.87), lc, th.light * 0.72 * k));
+        const far = front ? inner : outer; const near = front ? outer : inner;
+        return `<path d="${far}" fill="${farFill}"/><path d="${near}" fill="${nearFill}"/>`
+          + `<path d="M${pts(ridge)}" stroke="#FFFFFF" stroke-opacity="${(0.2 + 0.45 * k).toFixed(2)}" stroke-width="1.1" stroke-linecap="round" fill="none"/>`;
+      };
+      const half = (r, front) => {
+        const B = bands[r]; const j0 = front ? 0 : HALF; const j1 = front ? HALF : SAMPLES;
+        let html = ''; let run = [];
+        for (let j = j0; j <= j1; j++) {
+          const q = B[j];
+          if (q.h > 0.08) { if (!run.length && j > j0) run.push(B[j - 1]); run.push(q); }
+          else if (run.length) { run.push(q); html += drawRun(run, r, front); run = []; }
+        }
+        if (run.length > 1) html += drawRun(run, r, front);
+        return html;
+      };
+      // 뒤쪽 반원은 바깥 띠부터, 앞쪽 반원은 안쪽 띠부터 그려야 겹침이 자연스럽다
+      silkG.innerHTML = half(2, false) + half(1, false) + half(0, false) + half(0, true) + half(1, true) + half(2, true);
       haloNow += (Math.min(1, total / (mods.length * 1.6)) - haloNow) * Math.min(1, dt * 2.5); // 깜빡임 없이 은은하게
       halo.style.opacity = (haloNow * th.light).toFixed(3);
     }
     requestAnimationFrame(frame);
 
-    // 캐릭터가 서 있는 자리의 모듈 높이 (바깥 링)
-    function liftAt(theta) {
-      const a = ((theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-      for (const m of mods) {
-        if (m.r !== 2) continue;
-        let a0 = m.a0 % (2 * Math.PI); let a1 = a0 + (m.a1 - m.a0);
-        if ((a >= a0 && a <= a1) || (a + 2 * Math.PI >= a0 && a + 2 * Math.PI <= a1)) return m.h;
-      }
-      return 0;
-    }
+    // 캐릭터가 서 있는 자리의 실리콘 높이 (바깥 띠)
+    function liftAt(theta) { return hAt(2, theta); }
 
     return { level, expr, describe, event, force, liftAt, get forced() { return forcedPattern; }, needsNow };
   })();
