@@ -46,6 +46,15 @@ AI 화분과 연동되는 식물 돌봄 앱 **ONGI**의 인터랙티브 프로�
 - `assets/`: Figma에서 가져온 그림과 아이콘, 식물 일러스트
 - `tools/gen_plants.py`: 식물 종류별 일러스트 생성기 (`python3 tools/gen_plants.py`)
 
+## 로고 바꾸기
+
+| 위치 | 파일 | 규격 |
+|---|---|---|
+| 앱 상단 왼쪽 로고 | `assets/logo-header.svg` | SVG 권장, 높이 23px로 표시(가로 최대 160px). 여백 없이 로고에 맞춰 자른 가로형. PNG면 높이 69px(3배) |
+| 브라우저 탭 아이콘 | `assets/favicon.svg` | 정사각형(1:1) SVG, 투명 배경, 32px에서도 알아볼 수 있는 심볼 |
+
+`assets/logo-header.svg`가 없으면 임시 로고(심볼 + 글자)가 대신 보입니다.
+
 ## 로컬에서 실행
 
 ```bash

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ONGI 프로토타입</title>
 <meta name="description" content="AI 화분과 연동되는 식물 돌봄 앱 ONGI의 인터랙티브 프로토타입">
-<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap">
@@ -156,8 +156,10 @@
 
         <header class="home-header">
           <div class="logo">
-            <img src="assets/logo.svg" width="29.6" height="17.9" alt="">
-            <span class="logo-word">ong<i></i></span>
+            <!-- assets/logo-header.svg 를 넣으면 그 로고가 쓰이고, 없으면 아래 임시 로고가 보인다 -->
+            <img class="logo-full" src="assets/logo-header.svg" alt="ONGI" onload="this.parentNode.classList.add('has-full')" onerror="this.remove()">
+            <img class="logo-fallback" src="assets/logo.svg" width="29.6" height="17.9" alt="">
+            <span class="logo-word logo-fallback">ong<i></i></span>
           </div>
           <div class="header-btns">
             <button class="icon-btn glass" data-action="noti" aria-label="알림"><img src="assets/ic-bell.svg" width="20" height="20" alt=""><span class="noti-dot" id="notiDot"></span></button>
