@@ -551,7 +551,9 @@ img { display: block; }
 /* 저녁 – 노을 */
 .phone[data-theme="evening"] { background: linear-gradient(180deg, #f5c7a0 0%, #f6d7bb 38%, #f3e3d2 72%, #efe6dc 100%); }
 .phone[data-theme="evening"] .pot .ring { filter: sepia(.22) saturate(1.1) brightness(.97); }
-.phone[data-theme="evening"] .plant-inner, .phone[data-theme="evening"] .deco-layer { filter: sepia(.18) brightness(.97); }
+.phone[data-theme="evening"] .plant-inner { filter: sepia(.18) brightness(.97); }
+/* 소품은 레이어가 아니라 각각에 필터를 줘야 화분 위에 그대로 보인다 */
+.phone[data-theme="evening"] .deco:not(.dragging) { filter: sepia(.18) brightness(.97); }
 
 /* 밤 – 어둡게, 화분 빛이 주인공 */
 .phone[data-theme="night"] {
@@ -562,7 +564,7 @@ img { display: block; }
 .phone[data-theme="night"] .glass { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 .phone[data-theme="night"] .pot .ring { filter: brightness(.42) saturate(.75); }
 .phone[data-theme="night"] .plant-inner { filter: brightness(.52) saturate(.85); }
-.phone[data-theme="night"] .deco-layer { filter: brightness(.5); }
+.phone[data-theme="night"] .deco:not(.dragging) { filter: brightness(.55); }
 .phone[data-theme="night"] .char { filter: brightness(.82); }
 .phone[data-theme="night"] .quest-sheet { background: linear-gradient(180deg, rgba(40, 46, 42, .45), rgba(30, 36, 32, .3)) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 0 0 1px rgba(255, 255, 255, .08) !important; }
 .phone[data-theme="night"] .quest { background: rgba(255, 255, 255, .07); }
