@@ -592,10 +592,10 @@
       mods.forEach((m) => { const tgt = lightOnly ? heightFor(m, p, t) : 0; m.h += (tgt - m.h) * Math.min(1, dt * 10); });
       for (let r = 0; r < 3; r++) {
         let tgt = 0;
-        if (p === 1) tgt = 1.8 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 2.6 + r * 1.2));
+        if (p === 1) tgt = 3.6 * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / 3.2 - r * 0.95)); // 잔잔한 물결: 안쪽 판부터 바깥으로 이어지듯 부드럽게
         else if (p === 2 || p === 4) tgt = heightFor({ r, a: 0 }, p, t) * 0.9;
         else if (lightOnly) tgt = Math.max(0, 0.8 + 0.5 * Math.sin(2 * Math.PI * t * 0.9 + r * 2.1) + 0.25 * Math.sin(2 * Math.PI * t * 1.7 + r * 4.3)); // 잔잔하게 일렁임
-        ringH[r] += (tgt - ringH[r]) * Math.min(1, dt * 10);
+        ringH[r] += (tgt - ringH[r]) * Math.min(1, dt * (p === 2 ? 10 : 6)); // 한숨(02)의 탁 떨어짐만 빠르게, 나머지는 부드럽게 따라감
         total += ringH[r];
       }
       if (lightOnly) bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
