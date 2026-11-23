@@ -619,27 +619,14 @@
     if (L > (S.levelSeen || 1)) {
       S.levelSeen = L; save();
       setTimeout(() => {
-        toast(`화분이 당신을 더 이해하게 됐어요\nLevel ${L}, ${LEVEL_INFO[L][0]}`, 3200);
-        Pot.event('levelup');
+        Pot.event('levelup'); devNote(`화분 이해도 Level ${L}로 올라감`);
       }, 1400);
     }
   }
 
   function openPotSheet() {
     Pot.event('tap');
-    const d = Pot.describe(Pot.expr());
-    const L = Pot.level();
-    const toL3 = S.character ? Math.min(S.character.xp, L3_STAGE * XP_PER_LEVEL) : 0;
-    openSheet(`
-      <h3>${d ? d.meaning : '화분이 쉬고 있어요'}</h3>
-      <p class="sub">${d ? `${String(d.pattern).padStart(2, '0')} ${d.name}, ${d.light}` : '지금은 모든 모듈이 낮은 대기 상태예요'}</p>
-      <div class="list">
-        <div class="row"><b>화분의 이해도</b><span>Level ${L}, ${LEVEL_INFO[L][0]}</span></div>
-        ${L === 1 ? `<div class="row"><b>Level 2까지</b><span>나를 닮은 식물이 찾아오면</span></div>` : ''}
-        ${L === 2 ? `<div class="row"><b>Level 3까지</b><span>${LEVELS[L3_STAGE].name}으로 자라면 (XP ${toL3}/${L3_STAGE * XP_PER_LEVEL})</span></div>` : ''}
-        <div class="row"><b>빛</b><span>${LEVEL_INFO[d ? d.level : L][1]}</span></div>
-      </div>
-      <button class="btn-text" data-sh="close" style="margin-top:16px">닫기</button>`, { close: closeSheet });
+    plantInner.classList.remove('wiggle'); void plantInner.offsetWidth; plantInner.classList.add('wiggle');
   }
   $('#pot').addEventListener('click', openPotSheet);
 
@@ -730,7 +717,7 @@
     $('#questSheet').classList.remove('open');
     if (opts.planting) {
       plantInner.classList.remove('planting'); void plantInner.offsetWidth; plantInner.classList.add('planting');
-      setTimeout(() => toast(`${josa(S.plant.name, '을', '를')} 심었어요\n화분이 파동과 빛으로 상태를 알려줄 거예요`, 2800), 400);
+      setTimeout(() => toast(`${josa(S.plant.name, '을', '를')} 심었어요`, 2400), 400);
     }
     Char.sync();
   }
@@ -907,7 +894,7 @@
         S.character.xp += gain; save(); checkLevel();
         floatFx(`<span class="fx-label">+${gain} XP</span>`, x - 22, head - 16);
         const after = lvl();
-        if (after > before) setTimeout(() => { say(`${LEVELS[after].name}로 자랐어요!`, 2600); toast(`나를 닮은 식물이 한 뼘 자랐어요\nLv.${after + 1} ${LEVELS[after].name}`); }, 600);
+        if (after > before) setTimeout(() => { say(`${LEVELS[after].name}로 자랐어요!`, 2600); toast(`${josa(S.character.name, '이', '가')} ${josa(LEVELS[after].name, '으로', '로')} 자랐어요`); }, 600);
         else say({ water: '시원해요!', heart: '따뜻해요', sun: '반짝반짝!' }[type], 1600);
         renderDev();
       }, 760);
@@ -920,9 +907,8 @@
       const l = lvl(); const xp = S.character.xp % XP_PER_LEVEL;
       const max = l === LEVELS.length - 1;
       openSheet(`<h3>${S.character.name}</h3><p class="sub">나의 하루를 닮아가는 식물</p>
-        <div class="list"><div class="row"><b>성장 단계</b><span>Lv.${l + 1} ${LEVELS[l].name}</span></div>
-        <div class="row"><b>경험치</b><span>${max ? '최고 단계' : `${xp} / ${XP_PER_LEVEL}`}</span></div>
-        <div class="row"><b>지금 기분</b><span>${(Pot.describe(Pot.expr()) || { meaning: '평온' }).meaning}</span></div></div>
+        <div class="list"><div class="row"><b>성장</b><span>${LEVELS[l].name}</span></div>
+        <div class="row"><b>경험치</b><span>${max ? '다 자랐어요' : `${xp} / ${XP_PER_LEVEL}`}</span></div></div>
         <button class="btn-text" data-sh="close" style="margin-top:16px">닫기</button>`, { close: closeSheet });
     }
     wrapEl.addEventListener('click', tap);
@@ -957,7 +943,7 @@
     const q = QUESTS[k]; const wanted = S.quests[k] === false;
     S.care++;
     (S.careLog[S.today] = S.careLog[S.today] || []).push({ type: q.care, time: nowTime() });
-    if (!wanted) { save(); toast(`${CARE_ACTIONS[k]} 완료\n지금은 화분이 원하던 돌봄이 아니었어요`); Pot.event('resolve'); return; }
+    if (!wanted) { save(); toast(`${CARE_ACTIONS[k]} 완료`); devNote('화분이 원하던 돌봄이 아니라 보상 없음'); Pot.event('resolve'); return; }
     S.quests[k] = true; S[q.item]++;
     giveXP(CARE_XP);
     save();
@@ -1023,7 +1009,7 @@
     Pot.event('diary', diaryMood); addBond(2);
     if (!S.character) {
       const n = Math.min(S.diaryCount, UNDERSTAND_GOAL);
-      toast(`기록 완료! 50P\n화분이 당신을 조금 더 알게 됐어요 (${n}/${UNDERSTAND_GOAL})`, 2600);
+      toast('기록 완료! 50P'); devNote(`문답 ${n}/${UNDERSTAND_GOAL} (새 식물 등장까지)`);
       if (S.diaryCount >= UNDERSTAND_GOAL) {
         await sleep(2800);
         toast('이제 당신을 조금 알 것 같아요…\n누군가 찾아오고 있어요', 2400);
@@ -1136,7 +1122,7 @@
     let html = `<button class="my-plant glass" data-action="plant-info"><img class="mp-img${p.img ? '' : ' art'}" src="${plantPhoto(p)}" alt=""><span class="mp-text"><b>${S.plant.name}</b><small>D+${dplus}</small></span></button>`;
     if (S.character) {
       const l = Char.lvl();
-      html += `<button class="my-plant glass" data-action="tab" data-to="home"><span class="mp-char">${miniCharHTML(36, 48)}</span><span class="mp-text"><b>${S.character.name}</b><small>Lv.${l + 1} ${LEVELS[l].name}</small></span></button>`;
+      html += `<button class="my-plant glass" data-action="tab" data-to="home"><span class="mp-char">${miniCharHTML(36, 48)}</span><span class="mp-text"><b>${S.character.name}</b><small>${LEVELS[l].name}</small></span></button>`;
     }
     $('#myPlants').innerHTML = html;
   }
@@ -1150,8 +1136,6 @@
           <div class="row"><b>토양 수분</b><span>${moist}%</span></div>
           <div class="row"><b>오늘 받은 햇빛</b><span>${S.quests.sun === false ? '부족해요' : '2시간 40분'}</span></div>
           <div class="row"><b>배터리</b><span>82%</span></div>
-          <div class="row"><b>화분의 이해도</b><span>Level ${Pot.level()}</span></div>
-          <div class="row"><b>지금 파동</b><span>${(Pot.describe(Pot.expr()) || { meaning: '대기' }).meaning}</span></div>
         </div>
         <button class="btn-text" data-sh="close" style="margin-top:16px">닫기</button>`, { close: closeSheet });
     } else if (m === 'box') {
@@ -1306,7 +1290,13 @@
     S = seedState(); Pot.force(0); applyTheme();
     $('#charWrap').hidden = true;
     go('survey', { force: true });
-    toast('처음부터 다시 시작해요');
+    devNote('처음부터 다시 시작해요');
+  }
+  let devNoteTimer;
+  function devNote(msg) {
+    const n = $('#devNote'); if (!n) return;
+    n.textContent = msg; n.classList.add('on');
+    clearTimeout(devNoteTimer); devNoteTimer = setTimeout(() => n.classList.remove('on'), 3200);
   }
   function renderDev() {
     if (typeof Pot === 'undefined') return;
@@ -1387,13 +1377,13 @@
     }
     if (b.dataset.pattern) {
       ensureOnboarded(); const p = +b.dataset.pattern;
-      if (p === 4 && Pot.level() === 3) { toast('Level 3에는 04번 표현이 없어요'); return; }
+      if (p === 4 && Pot.level() === 3) { devNote('Level 3에는 04번 표현이 없어요'); return; }
       Pot.force(p);
       if (current !== 'home') go('home');
       return;
     }
     if (b.dataset.char === 'auto') {
-      S.charOverride = null; save(); renderDev(); toast('마음 기록 비율로 캐릭터가 정해져요'); return;
+      S.charOverride = null; save(); renderDev(); devNote('마음 기록 비율로 캐릭터가 정해져요'); return;
     }
     if (b.dataset.char) {
       S.charOverride = b.dataset.char; S.charType = b.dataset.char;
@@ -1415,10 +1405,10 @@
       case 'nextday': ensureOnboarded(); nextDay(); break;
       case 'arrive': ensureOnboarded(); S.diaryCount = Math.max(S.diaryCount, UNDERSTAND_GOAL); go('arrival', { force: true }); break;
       case 'xp':
-        if (!S.character) { toast('먼저 새 식물을 등장시켜주세요'); break; }
+        if (!S.character) { devNote('먼저 새 식물을 등장시켜주세요'); break; }
         if (current !== 'home') go('home');
         Char.grow(50); renderDev(); break;
-      case 'points': S.points += 500; save(); renderItems(); if (current === 'shop') renderShop(); if (current === 'my') renderMy(); toast('포인트 +500'); break;
+      case 'points': S.points += 500; save(); renderItems(); if (current === 'shop') renderShop(); if (current === 'my') renderMy(); devNote('포인트 +500'); break;
       case 'reset': reset(); break;
       default: break;
     }

@@ -630,3 +630,6 @@ button.slot:active { transform: scale(.94); }
 .plant-leaves.full { left: 0; top: 0; width: 197.8px; height: 206.4px; transform-origin: 50% 99%; }
 img.art { object-fit: contain !important; background: var(--brand-tint); padding: 6px; }
 .profile-photo.art { padding: 14px; }
+
+.dev-note { font-size: 12px; font-weight: 600; color: var(--text-brand); background: var(--brand-tint); border-radius: 10px; padding: 8px 10px; margin-top: -6px; display: none; }
+.dev-note.on { display: block; animation: rise .3s var(--ease-out); }
