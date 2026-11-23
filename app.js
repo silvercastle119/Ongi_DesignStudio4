@@ -453,7 +453,7 @@
     const flt = mk('filter', { id: 'potGlow', x: '-60%', y: '-120%', width: '220%', height: '340%' }, defs);
     mk('feGaussianBlur', { stdDeviation: '5' }, flt);
     const blur = (id, sd) => { const f = mk('filter', { id, x: '-20%', y: '-60%', width: '140%', height: '220%' }, defs); mk('feGaussianBlur', { stdDeviation: sd }, f); };
-    blur('silkBody', '0.6'); blur('bloom', '6'); blur('sheen', '0.8'); blur('contact', '7');
+    blur('silkBody', '0.6'); blur('bloom', '3.2'); blur('sheen', '0.8'); blur('contact', '7');
     // 레퍼런스처럼: 실리콘 띠가 통통하게 부풀어 오르고, 부푼 실리콘이 속에서 비치듯 빛난다
     const bodyG = mk('g', { filter: 'url(#silkBody)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 실리콘 몸통
     // 빛은 반투명 실리콘 판 안에서만 비쳐 보인다 (판 모양으로 잘라냄)
@@ -468,14 +468,14 @@
     const ringMods = [0, 1, 2].map((r) => mods.filter((m) => m.r === r));
     // 지점들의 높이를 부드럽게 이어 실리콘 표면 높이로 만든다
     function hAt(r, a) {
-      const ms = ringMods[r]; const n = ms.length; const sp = TAU / n; const sig = 0.55 * sp;
+      const ms = ringMods[r]; const n = ms.length; const sp = TAU / n; const sig = 0.42 * sp;
       const base = Math.round((a - ms[0].a) / sp); let sum = 0;
       for (let q = -3; q <= 3; q++) {
         const m = ms[(((base + q) % n) + n) % n];
         const d = Math.atan2(Math.sin(a - m.a), Math.cos(a - m.a));
         sum += m.h * Math.exp(-0.5 * (d / sig) ** 2);
       }
-      return sum * 0.725;
+      return sum * 0.95;
     }
 
     // 띠마다 안쪽 경계, 바깥 경계, 가운데(솟아오르는 능선)를 촘촘히 잡아 둔다
@@ -594,7 +594,7 @@
         let tgt = 0;
         if (p === 1) tgt = 1.8 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 2.6 + r * 1.2));
         else if (p === 2 || p === 4) tgt = heightFor({ r, a: 0 }, p, t) * 0.9;
-        else if (lightOnly) tgt = Math.max(0, 0.7 + 0.6 * Math.sin(2 * Math.PI * t * 1.3 + r * 2.1) + 0.35 * Math.sin(t * 19 + r * 5));
+        else if (lightOnly) tgt = Math.max(0, 0.8 + 0.5 * Math.sin(2 * Math.PI * t * 0.9 + r * 2.1) + 0.25 * Math.sin(2 * Math.PI * t * 1.7 + r * 4.3)); // 잔잔하게 일렁임
         ringH[r] += (tgt - ringH[r]) * Math.min(1, dt * 10);
         total += ringH[r];
       }
@@ -616,8 +616,8 @@
         const base = top(r); const side = rgb(mix(base.map((v) => v * 0.88), lc, 0.8 * glow));
         // 판 아래 틈에서 새어 나오는 빛 (보이는 쪽 경계: 앞쪽은 바깥 경계, 뒤쪽은 안쪽 경계)
         const leak = `M${halfPts(r, 'po', true).map(P).join(' L')} M${halfPts(r, 'pi', false).map(P).join(' L')}`;
-        if (haze) shadowH += `<path d="${leak}" stroke="#4A5A44" stroke-opacity="${(0.12 * glow).toFixed(2)}" stroke-width="${(12 + H * 1.5).toFixed(1)}"/>`;
-        bloomH += `<path d="${leak}" stroke="${rgb(lc)}" stroke-opacity="${Math.min(1, 1.2 * glow).toFixed(2)}" stroke-width="${(6 + H * 1.2).toFixed(1)}"/>`;
+        if (haze) shadowH += `<path d="${leak}" stroke="#4A5A44" stroke-opacity="${(0.12 * glow).toFixed(2)}" stroke-width="${(7 + H * 1).toFixed(1)}"/>`;
+        bloomH += `<path d="${leak}" stroke="${rgb(lc)}" stroke-opacity="${Math.min(1, 1.2 * glow).toFixed(2)}" stroke-width="${(3.5 + H * 0.7).toFixed(1)}"/>`;
         bodyH += `<path d="${wallPath(r, 'po', true, H)}" fill="${side}"/><path d="${wallPath(r, 'pi', false, H)}" fill="${side}"/>`;
         bodyH += `<path d="${ringPath(r, H)}" fill="${rgb(base)}" fill-rule="evenodd"/>`;
         hiH += `<path d="${ringPath(r, H)}" fill="none" stroke="#FFFFFF" stroke-opacity="${(0.2 + 0.3 * k).toFixed(2)}" stroke-width="0.9"/>`;
@@ -631,14 +631,14 @@
             const q0 = B[j]; const q1 = B[j + 2];
             const v = (q0.h + q1.h) / 2; if (v < 0.15) continue;
             const o = Math.round(Math.min(1, v / 4) * 10) / 10; if (!o) continue;
-            const bw = Math.round(Math.hypot(q0.po[0] - q0.pi[0], q0.po[1] - q0.pi[1]) * 1.25 / 2) * 2;
+            const bw = Math.round(Math.hypot(q0.po[0] - q0.pi[0], q0.po[1] - q0.pi[1]) * 0.75 / 2) * 2; // 스팟 하나가 띠 폭보다 좁게
             const key = `${o}|${bw}`;
             spots.set(key, (spots.get(key) || '') + `M${P(lift(q0.pc, ringH[r] * 1.3))}L${P(lift(q1.pc, ringH[r] * 1.3))}`);
           }
         });
         spots.forEach((d, key) => {
           const [o, w] = key.split('|').map(Number);
-          if (haze) shadowH += `<path d="${d}" stroke="#4A5A44" stroke-opacity="${(0.14 * o * th.light).toFixed(2)}" stroke-width="${w * 1.6}"/>`;
+          if (haze) shadowH += `<path d="${d}" stroke="#4A5A44" stroke-opacity="${(0.14 * o * th.light).toFixed(2)}" stroke-width="${w * 1.3}"/>`;
           bloomH += `<path d="${d}" stroke="${rgb(lc)}" stroke-opacity="${Math.min(1, o * th.light * 1.15).toFixed(2)}" stroke-width="${w}"/>`;
           total += o * 6;
         });
@@ -779,7 +779,7 @@
     let theta = 0.32, target = 0.32, moving = false, pauseUntil = 0, last = 0, raf = 0;
     let dir = 1, busyUntil = 0, scaleNow = 0, visit = false, lastX = CX + RX * Math.cos(theta);
     let face = '', act = null, fxAt = 0;
-    let z = 0, vz = 0, vth = 0, spin = 0, vspin = 0, prevSurf = 0;
+    let z = 0, vz = 0, vth = 0, spin = 0, vspin = 0, prevSurf = 0, surfSmooth = 0, tossCool = 0;
     const TOSS = { 1: 1.4, 2: 6, 3: 3.2, 4: 4, 5: 1.1 }; // Level 1 상태 파동에 튕겨 나가는 세기
     const ACTS = ['walking', 'idle', 'dizzy', 'bounce', 'slow', 'restless', 'skip', 'sigh', 'party', 'stretch', 'breathe', 'cheer'];
 
@@ -864,23 +864,26 @@
         if (k) { fx(k[0]); fxAt = now + k[1]; }
       }
       // Level 1 상태 파동: 발밑 모듈이 솟구치면 몸이 이리저리 튕겨 나감
-      const surf = Pot.liftAt(theta);
+      // 발밑 판의 높이를 부드럽게 따라감 (덜컹거리지 않게)
+      surfSmooth += (Pot.liftAt(theta) - surfSmooth) * Math.min(1, dt * 7);
+      const surf = surfSmooth;
       const dS = (surf - prevSurf) / Math.max(dt, 0.001); prevSurf = surf;
-      if (stateWave && z <= 0.01 && dS > 6) {
-        vz = Math.min(190, dS * TOSS[ex.pattern] + 30);
-        const side = Math.random() < 0.5 ? -1 : 1;
-        if (ex.pattern === 3) vth += side * (0.55 + Math.random() * 0.6); // 이쪽저쪽으로 튐
-        else if (ex.pattern === 5) vth += 0.8; // 도는 방향으로 휩쓸림
-        else if (ex.pattern === 2) { vz += 15; vth += side * 0.45; }
-        else vth += side * 0.3;
-        moving = false;
+      // 판이 쑥 들리는 파동(01, 02, 04): 들리는 힘에 실려 살짝 튀어 오름
+      if (stateWave && z <= 0.01 && dS > 9 && now > tossCool) {
+        vz = Math.min(150, dS * TOSS[ex.pattern] + 20);
+        vth += (Math.random() < 0.5 ? -1 : 1) * 0.25;
+        tossCool = now + 600; moving = false;
       }
-      if (stateWave && ex.pattern === 3 && z <= 0.01 && Math.random() < dt * 0.4) { vz = 80 + Math.random() * 50; vth += (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5); }
+      // 빛으로만 표현하는 파동: 03은 가끔 콩 하고 튀고, 05는 도는 방향으로 천천히 밀려남
+      if (stateWave && ex.pattern === 3 && z <= 0.01 && now > tossCool && Math.random() < dt * 0.6) {
+        vz = 70 + Math.random() * 40; vth += (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.3); tossCool = now + 900;
+      }
+      if (stateWave && ex.pattern === 5) { vth += (0.55 - vth) * Math.min(1, dt * 1.5); }
       if (z > 0 || vz > 0) {
-        vz -= 640 * dt; z += vz * dt;
+        vz -= 560 * dt; z += vz * dt; // 살짝 더 둥실하게 떨어짐
         if (z <= 0) { z = 0; if (vz < -90) { el.classList.remove('land'); void el.offsetWidth; el.classList.add('land'); } vz = 0; vspin = 0; }
       }
-      theta += vth * dt; vth *= Math.max(0, 1 - dt * 2.4);
+      theta += vth * dt; if (!(stateWave && ex.pattern === 5)) vth *= Math.max(0, 1 - dt * 2.4);
       // 몸은 똑바로 – 튀는 방향으로만 살짝 기울어짐
       const tilt = Math.max(-9, Math.min(9, vth * 9)) * (z > 0 ? 1 : 0.4);
       spin += (tilt - spin) * Math.min(1, dt * 10);
