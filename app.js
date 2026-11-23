@@ -117,9 +117,9 @@
   const NEED_PATTERN = { thirst: 1, sun: 2, climate: 3, nutrient: 4, air: 5 };
   const L3_STAGE = 2; // 캐릭터가 '어린 잎'(성장 3단계)으로 자라면 Level 3
   const THEMES = {
-    morning: { label: '아침', clock: '9:41', light: 1, dim: 1 },
-    evening: { label: '저녁', clock: '18:40', light: 1, dim: 0.93 },
-    night: { label: '밤', clock: '22:10', light: 1, dim: 0.42 },
+    morning: { label: '아침', clock: '9:41', light: 1, dim: 1, spread: 0.32 },
+    evening: { label: '저녁', clock: '18:40', light: 1, dim: 0.93, spread: 0.6 },
+    night: { label: '밤', clock: '22:10', light: 1, dim: 0.42, spread: 1 },
   };
   // 레벨별 의미 → 캐릭터 반응 (표정 · 몸짓)
   const REACT = {
@@ -453,11 +453,12 @@
     const flt = mk('filter', { id: 'potGlow', x: '-60%', y: '-120%', width: '220%', height: '340%' }, defs);
     mk('feGaussianBlur', { stdDeviation: '5' }, flt);
     const blur = (id, sd) => { const f = mk('filter', { id, x: '-20%', y: '-60%', width: '140%', height: '220%' }, defs); mk('feGaussianBlur', { stdDeviation: sd }, f); };
-    blur('silkBody', '0.9'); blur('silkShade', '2.4'); blur('silkHi', '1.3');
-    const glowG = mk('g', { filter: 'url(#potGlow)' }, svg);
-    // 맨질한 면 위로 실리콘이 볼록 솟은 느낌: 면을 새로 그리지 않고, 부드러운 그림자와 하이라이트로만 볼록함을 표현
+    blur('silkBody', '0.7'); blur('leakWide', '3.2'); blur('leakLine', '0.6'); blur('silkHi', '1');
+    // 띠와 띠 사이 파팅 라인에서 새어 나오는 빛 (넓게 번지는 빛 + 가는 빛줄기)
+    const glowG = mk('g', { filter: 'url(#leakWide)', fill: 'none', 'stroke-linecap': 'round' }, svg);
+    const lineG = mk('g', { filter: 'url(#leakLine)', fill: 'none', 'stroke-linecap': 'round' }, svg);
+    // 띠가 통째로 들썩: 들린 띠 몸통, 틈으로 비치는 옆면, 윗모서리 반사광
     const bodyG = mk('g', { filter: 'url(#silkBody)' }, svg);
-    const shadeG = mk('g', { filter: 'url(#silkShade)' }, svg);
     const hiG = mk('g', { filter: 'url(#silkHi)' }, svg);
 
     // 밀어 올리는 지점들 – 움직임 5가지는 이 지점들의 높이로 계산한다
@@ -486,13 +487,14 @@
       }
       return out;
     });
-    // 빛: 실리콘이 부푼 자리 아래에서 은은하게 번짐 (작은 조각마다 세기 조절)
+    // 빛: 파팅 라인(1번-2번 띠 사이, 2번-3번 띠 사이, 1번 띠와 식물 구멍 사이)을 따라 조각마다 세기 조절
     const CH = 6; const glows = [];
-    bands.forEach((B, r) => {
+    const LINES = [{ c: C[1], adj: [2, 1] }, { c: C[2], adj: [1, 0] }, { c: C[3], adj: [0] }];
+    LINES.forEach((Ln) => {
       for (let j0 = 0; j0 < SAMPLES; j0 += CH) {
-        const seg = B.slice(j0, j0 + CH + 1);
-        const d = `M${seg.map((q) => `${f1(q.po[0])} ${f1(q.po[1])}`).join(' L')} L${seg.slice().reverse().map((q) => `${f1(q.pi[0])} ${f1(q.pi[1])}`).join(' L')}Z`;
-        glows.push({ el: mk('path', { d, opacity: 0 }, glowG), r, j0 });
+        const seg = []; for (let j = j0; j <= j0 + CH; j++) seg.push(pt(Ln.c, (TAU * j) / SAMPLES));
+        const d = `M${seg.map((q) => `${f1(q[0])} ${f1(q[1])}`).join(' L')}`;
+        glows.push({ wide: mk('path', { d, 'stroke-width': '7', opacity: 0 }, glowG), line: mk('path', { d, 'stroke-width': '1.4', opacity: 0 }, lineG), adj: Ln.adj, j0 });
       }
     });
 
@@ -577,7 +579,7 @@
       }
     }
 
-    let lastT = 0; let haloNow = 0; let glowLevel = -1;
+    let lastT = 0; let haloNow = 0;
     function frame(now) {
       requestAnimationFrame(frame);
       if (current !== 'home') { lastT = 0; return; }
@@ -589,7 +591,7 @@
       const lc = LIGHT[L]; const th = THEMES[themeNow()];
       const key = `${L}|${themeNow()}`;
       if (key !== lastKey) {
-        lastKey = key; glowG.setAttribute('fill', rgb(lc)); halo.style.setProperty('--lc', lc.join(','));
+        lastKey = key; glowG.setAttribute('stroke', rgb(lc)); lineG.setAttribute('stroke', rgb(lc)); halo.style.setProperty('--lc', lc.join(','));
       }
       plantInner.classList.toggle('thirsty', !!ex && ex.kind === 'state' && ex.pattern === 1);
       let total = 0;
@@ -599,24 +601,33 @@
         total += m.h;
       });
       bands.forEach((B, r) => B.forEach((q) => { q.h = hAt(r, q.a); }));
-      // 조명은 파동과 상관없이 화분 전체에서 은은하게 켜져 있다
-      if (glowLevel !== th.light) { glowLevel = th.light; glows.forEach((g) => g.el.setAttribute('opacity', (0.42 * th.light).toFixed(3))); }
+      // 조명은 늘 켜져 있고, 띠가 들리면 그 틈으로 빛이 조금 더 새어 나온다
+      glows.forEach((g) => {
+        let lift = 0;
+        for (let j = g.j0; j <= g.j0 + CH; j += 2) g.adj.forEach((r) => { lift = Math.max(lift, bands[r][j].h); });
+        const k = Math.min(1, lift / 5);
+        g.wide.setAttribute('opacity', (th.light * th.spread * (0.5 + 0.4 * k)).toFixed(3)); // 밝은 배경에서는 번지는 빛을 줄여 화분 윤곽을 살림
+        g.line.setAttribute('opacity', (th.light * (0.75 + 0.25 * k)).toFixed(3));
+      });
       // 실리콘이 볼록하게 부푼 모양: 능선(가운데)이 솟고 양쪽 경계는 제자리에 붙어 있음
       const top = (r) => RINGS[r].top.map((v) => v * th.dim);
       const pts = (arr) => arr.map(([x, y]) => `${f1(x)} ${f1(y)}`).join(' L');
       const drawRun = (run, r, front) => {
-        const ridge = run.map((q) => [q.pc[0], q.pc[1] - q.h]);
         let mh = 0; run.forEach((q) => { mh = Math.max(mh, q.h); });
         const k = Math.min(1, mh / 5);
-        const lower = run.slice().reverse().map((q) => (front ? q.po : q.pi)); // 화면에서 아래쪽 경계
-        const upper = run.slice().reverse().map((q) => (front ? q.pi : q.po));
-        const base = rgb(top(r));
-        // 볼록 솟은 부분의 윤곽만 같은 색으로 살짝 채움 (면이 새로 생긴 것처럼 보이지 않게)
-        body += `<path d="M${pts(ridge)} L${pts(upper)}Z M${pts(ridge)} L${pts(lower)}Z" fill="${base}"/>`;
-        // 아래쪽으로 번지는 부드러운 그늘
-        shade += `<path d="M${pts(ridge)} L${pts(lower)}Z" fill="#3C4A34" fill-opacity="${(0.16 + 0.22 * k).toFixed(2)}"/>`;
-        // 능선의 맨질한 반사광
-        hi += `<path d="M${pts(ridge)}" stroke="#FFFFFF" stroke-opacity="${(0.35 + 0.5 * k).toFixed(2)}" stroke-width="${(1.6 + mh * 0.35).toFixed(1)}" stroke-linecap="round" fill="none"/>`;
+        const up = (p, h) => [p[0], p[1] - h];
+        const nearB = run.map((q) => (front ? q.po : q.pi)); // 화면에서 앞쪽(아래쪽) 경계
+        const farB = run.map((q) => (front ? q.pi : q.po));
+        const nearU = run.map((q, i) => up(nearB[i], q.h));
+        const farU = run.map((q, i) => up(farB[i], q.h));
+        const base = top(r);
+        // 들린 띠 몸통 (같은 색이라 면이 새로 생겨 보이지 않음)
+        body += `<path d="M${pts(nearU)} L${pts(farU.slice().reverse())}Z" fill="${rgb(base)}"/>`;
+        // 들린 만큼 드러나는 옆면 – 아래 파팅 라인의 빛이 비쳐 은은하게 물듦
+        body += `<path d="M${pts(nearB)} L${pts(nearU.slice().reverse())}Z" fill="${rgb(mix(base.map((v) => v * 0.9), lc, th.light * 0.6))}"/>`;
+        // 틈으로 새어 나오는 빛줄기 + 윗모서리의 맨질한 반사광
+        hi += `<path d="M${pts(nearB)}" stroke="${rgb(lc)}" stroke-opacity="${(th.light * (0.5 + 0.5 * k)).toFixed(2)}" stroke-width="${(1.2 + mh * 0.25).toFixed(1)}" stroke-linecap="round" fill="none"/>`;
+        hi += `<path d="M${pts(nearU)}" stroke="#FFFFFF" stroke-opacity="${(0.25 + 0.35 * k).toFixed(2)}" stroke-width="1" stroke-linecap="round" fill="none"/>`;
       };
       const half = (r, front) => {
         const B = bands[r]; const j0 = front ? 0 : HALF; const j1 = front ? HALF : SAMPLES;
@@ -629,10 +640,10 @@
         if (run.length > 1) drawRun(run, r, front);
       };
       // 뒤쪽 반원은 바깥 띠부터, 앞쪽 반원은 안쪽 띠부터 그려야 겹침이 자연스럽다
-      let body = ''; let shade = ''; let hi = '';
+      let body = ''; let hi = '';
       [[2, false], [1, false], [0, false], [0, true], [1, true], [2, true]].forEach(([r, f]) => half(r, f));
-      bodyG.innerHTML = body; shadeG.innerHTML = shade; hiG.innerHTML = hi;
-      haloNow += (0.78 - haloNow) * Math.min(1, dt * 2.5); // 늘 켜져 있는 은은한 빛
+      bodyG.innerHTML = body; hiG.innerHTML = hi;
+      haloNow += (0.45 - haloNow) * Math.min(1, dt * 2.5); // 화분 위로 은은하게 퍼지는 빛
       halo.style.opacity = (haloNow * th.light).toFixed(3);
     }
     requestAnimationFrame(frame);
