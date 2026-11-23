@@ -455,9 +455,11 @@
     const blur = (id, sd) => { const f = mk('filter', { id, x: '-20%', y: '-60%', width: '140%', height: '220%' }, defs); mk('feGaussianBlur', { stdDeviation: sd }, f); };
     blur('silkBody', '0.6'); blur('bloom', '6'); blur('sheen', '0.8'); blur('contact', '7');
     // 레퍼런스처럼: 실리콘 띠가 통통하게 부풀어 오르고, 부푼 실리콘이 속에서 비치듯 빛난다
-    const contactG = mk('g', { filter: 'url(#contact)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 빛 아래에 까는 옅은 그늘 (밝은 화면에서 흰 빛이 보이게)
-    const glowG = mk('g', { filter: 'url(#bloom)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 자리 주변으로 번지는 빛
     const bodyG = mk('g', { filter: 'url(#silkBody)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 부푼 실리콘 몸통
+    // 빛은 반투명 실리콘 판 안에서만 비쳐 보인다 (판 모양으로 잘라냄)
+    const clipEl = mk('clipPath', { id: 'potClip' }, defs);
+    const contactG = mk('g', { filter: 'url(#contact)' , 'stroke-linecap': 'round', fill: 'none', 'clip-path': 'url(#potClip)' }, svg); // 빛 아래에 까는 옅은 그늘 (밝은 화면에서 흰 빛이 보이게)
+    const glowG = mk('g', { filter: 'url(#bloom)' , 'stroke-linecap': 'round', fill: 'none', 'clip-path': 'url(#potClip)' }, svg); // 부푼 자리 주변으로 번지는 빛
     const hiG = mk('g', { filter: 'url(#sheen)' , 'stroke-linecap': 'round', fill: 'none' }, svg); // 진주 같은 윗면 광택
 
     // 밀어 올리는 지점들 – 움직임 5가지는 이 지점들의 높이로 계산한다
@@ -641,9 +643,17 @@
           total += o * 6;
         });
       }
+      // 판 모양(들린 윗면 + 드러난 옆면)으로 빛을 잘라 판 밖으로 번지지 않게 한다
+      let clipH = '';
+      for (let r = 0; r < 3; r++) {
+        const H = ringH[r] * 1.3;
+        clipH += `<path d="${ringPath(r, H)}" clip-rule="evenodd"/>`;
+        if (H >= 0.08) clipH += `<path d="${wallPath(r, 'po', true, H)}"/><path d="${wallPath(r, 'pi', false, H)}"/>`;
+      }
+      clipEl.innerHTML = clipH;
       contactG.innerHTML = shadowH; glowG.innerHTML = bloomH; bodyG.innerHTML = bodyH; hiG.innerHTML = hiH;
       haloNow += (Math.min(1, total / 14) - haloNow) * Math.min(1, dt * 2.5); // 파동이 있을 때만 화분 위로 번지는 빛
-      halo.style.opacity = (haloNow * th.light * th.spread * 0.6).toFixed(3); // 부푼 자리가 묻히지 않게 넓은 빛은 약하게
+      halo.style.opacity = '0'; // 판 밖으로 번지는 후광은 쓰지 않는다
     }
     requestAnimationFrame(frame);
 
